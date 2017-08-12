@@ -42,9 +42,10 @@ class Visiter(db.Model):
     def __init__(self, user, place, snap):
         self.user = user
         self.place = place
-        self.pass_phrase = genPassPhrase()
+        self.pass_phrase = self.genPassPhrase()
+        self.snap = snap
     
-    def genPassPhrase():
+    def genPassPhrase(self):
         return binascii.hexlify(os.urandom(16))
 
 class Snap(db.Model):
@@ -53,8 +54,6 @@ class Snap(db.Model):
     src = Column(Unicode(255))
     thum_src = Column(Unicode(255))
     date = Column(DateTime)
-
-    visiters = relation("Visiter", backref="snap")
     
     def __init__(self, datetime):
         self.src = None
