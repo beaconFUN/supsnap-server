@@ -5,11 +5,8 @@ from db import db
 from sqlalchemy.schema import Column, ForeignKey
 from sqlalchemy.types import Integer, Unicode, DateTime
 from sqlalchemy.orm import relation
-from sqlalchemy.ext.declarative import declarative_base
 
-Base = declarative_base()
-
-class Beacon(Base):
+class Beacon(db.Model):
     __tablename__ = "beacon"
     id = Column(Integer, primary_key=True)
     uuid = Column(Unicode(36))
@@ -23,7 +20,7 @@ class Beacon(Base):
         self.major = major
         self.minor = minor
 
-class Place(Base):
+class Place(db.Model):
     __tablename__ = "place"
     id = Column(Integer, primary_key=True)
     name = Column(Unicode(255))
@@ -33,7 +30,7 @@ class Place(Base):
         self.name = name
         self.beacon = beacon
 
-class Visiter(Base):
+class Visiter(db.Model):
     __tablename__ = "visiter"
     id = Column(Integer, primary_key=True)
     user = Column(Unicode(255))
@@ -50,7 +47,7 @@ class Visiter(Base):
     def genPassPhrase():
         return binascii.hexlify(os.urandom(16))
 
-class Snap(Base):
+class Snap(db.Model):
     __tablename__ = "snap"
     id = Column(Integer, primary_key=True)
     src = Column(Unicode(255))
