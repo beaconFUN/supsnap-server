@@ -25,22 +25,27 @@ all http request method is POST
 ### get visiter
     POST /visiter
 
-get visiter from beacon and user
+get visiter by beacon and user data
+
+### delete visiter
+    POST /delete_visiter
+
+delete visiter by visiter data
 
 ### get image
     POST /get_image
 
-get full size image from visiter
+get full size image by visiter data
 
 ### get thum
     POST /get_thum
 
-get thumbnail from visiter
+get thumbnail by visiter data
 
 ### get snap state
     POST /get_snap_state
 
-get latest supsnap informations from visiter
+get latest supsnap informations by visiter data
 
 ## support debugging
 below functions available when **only debug mode**.

@@ -18,7 +18,7 @@ def parse_serializable_obj(data):
     
     for k, v in data.items():
         if isinstance(v, datetime.datetime):
-            data[k] = v.isoformat()
+            data[k] = v.strftime("%Y-%m-%dT%H:%M:%S")
         elif isinstance(v, bytes):
             data[k] = v.decode("utf-8")
     
@@ -27,20 +27,28 @@ def parse_serializable_obj(data):
 def get_json_params():
     return json.loads(request.data)
 
-def get_snap_from_visiter_json(data):
-    visiter = Visiter.query.filter_by(\
+def get_valid_visiter(data):
+    visiter_query = Visiter.query.filter_by(\
         id=data["id"],\
         user=data["user"],\
         place=data["place"],\
         pass_phrase=data["pass_phrase"],\
         snap=data["snap"],\
         date=datetime.datetime.strptime(data["date"], "%Y-%m-%dT%H:%M:%S")\
-    ).first()
+    )
     
-    if(visiter is None):
+    if visiter_query.count() == 1:
+        return visiter_query.one()
+    else:
         return None
+
+def get_snap_from_visiter_json(data):
+    visiter = get_valid_visiter(data)
     
-    return Snap.query.filter_by(id=visiter.snap).one()
+    if visiter is None:
+        return None
+    else:
+        return Snap.query.filter_by(id=visiter.snap).one()
 
 
 @app.route("/")
@@ -92,6 +100,18 @@ def get_visiter():
     
     return Response(json.dumps(serializable_new_visiter), mimetype="application/json")
 
+@app.route("/delete_visiter", methods=["POST"])
+def delete_visiter():
+    params = get_json_params()
+    visiter = get_valid_visiter(params)
+    
+    if visiter is None:
+        return abort(404)
+    
+    db.session.delete(visiter)
+    db.session.commit()
+    return Response(json.dumps({"state": "done"}), mimetype="application/json")
+
 @app.route("/get_image", methods=["POST"])
 def get_image():
     snap = get_snap_from_visiter_json(get_json_params())
@@ -112,9 +132,10 @@ def get_thum_image():
 
 @app.route("/get_snap_state", methods=["POST"])
 def get_snap_state():
-    params = get_json_params()
+    snap = get_snap_from_visiter_json(get_json_params())
     
-    snap = Snap.query.filter_by(id=params["snap"]).one()
+    if snap is None:
+        return abort(404)
     
     response_data = {
         "visiter_length": len(snap.visiters),
