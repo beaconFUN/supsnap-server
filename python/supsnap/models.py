@@ -4,7 +4,7 @@ import datetime
 from db import db
 from sqlalchemy.schema import Column, ForeignKey
 from sqlalchemy.types import Integer, Unicode, DateTime
-from sqlalchemy.orm import relation
+from sqlalchemy.orm import relationship
 
 class Beacon(db.Model):
     __tablename__ = "beacon"
@@ -13,7 +13,7 @@ class Beacon(db.Model):
     major = Column(Integer)
     minor = Column(Integer)
     
-    place = relation("Place")
+    place = relationship("Place", uselist=False)
     
     def __init__(self, uuid, major, minor):
         self.uuid = uuid
@@ -54,6 +54,8 @@ class Snap(db.Model):
     src = Column(Unicode(255))
     thum_src = Column(Unicode(255))
     date = Column(DateTime)
+    
+    visiters = relationship("Visiter")
     
     def __init__(self, datetime):
         self.src = None

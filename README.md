@@ -28,17 +28,17 @@ all http request method is POST
 get visiter from beacon and user
 
 ### get image
-    POST /image
+    POST /get_image
 
 get full size image from visiter
 
 ### get thum
-    POST /thum
+    POST /get_thum
 
 get thumbnail from visiter
 
 ### get snap state
-    POST /snap_state
+    POST /get_snap_state
 
 get latest supsnap informations from visiter
 
@@ -47,7 +47,7 @@ below functions available when **only debug mode**.
 
     app.run(debug=True)
 
-### api tester(easy http client)
+### api tester(simple http client)
 access document-root of supsnap-server
 
 ### debugging api
