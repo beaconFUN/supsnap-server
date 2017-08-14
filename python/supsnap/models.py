@@ -37,13 +37,14 @@ class Visiter(db.Model):
     place = Column(Integer, ForeignKey("place.id"))
     pass_phrase = Column(Unicode(32))
     snap = Column(Integer, ForeignKey("snap.id"))
-    date = Column(DateTime, default=datetime.datetime.utcnow)
+    date = Column(DateTime)
     
     def __init__(self, user, place, snap):
         self.user = user
         self.place = place
         self.pass_phrase = self.genPassPhrase()
         self.snap = snap
+        self.date = datetime.datetime.now().replace(microsecond=0)
     
     def genPassPhrase(self):
         return binascii.hexlify(os.urandom(16))

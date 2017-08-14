@@ -6,6 +6,8 @@ import datetime
 import json
 import copy
 from threading import Timer
+import os
+
 
 def parse_serializable_obj(data):
     data = copy.deepcopy(data)
@@ -50,6 +52,12 @@ def get_snap_from_visiter_json(data):
     else:
         return Snap.query.filter_by(id=visiter.snap).one()
 
+def get_snap_image(snap):
+    snap = db.session.query(Snap).filter_by(id=snap).one()
+    snap.src = "mock.jpg"
+    snap.thum_src = "mock_thum.jpg"
+    db.session.commit()
+    
 
 @app.route("/")
 def show_all():
@@ -71,7 +79,7 @@ def get_visiter():
     active_snaps = Snap.query.filter("date > :now").params(now=datetime.datetime.now()).all();
     
     for snap in active_snaps:
-        if snap.visiters[0].place == place.id:
+        if len(snap.visiters) != 0 and snap.visiters[0].place == place.id:
             for visiter in snap.visiters:
                 if visiter.user == params["user"]:
                     return abort(409)
@@ -91,12 +99,15 @@ def get_visiter():
     db.session.flush()
     
     new_visiter = Visiter(params["user"], place.id, new_snap.id)
+    
     db.session.add(new_visiter)
     db.session.flush()
     
     serializable_new_visiter = copy.deepcopy(parse_serializable_obj(new_visiter))
     
     db.session.commit()
+    
+    Timer(app.config["SNAP_TIME_LAG"], get_snap_image, (serializable_new_visiter["snap"], )).start()
     
     return Response(json.dumps(serializable_new_visiter), mimetype="application/json")
 
@@ -106,7 +117,7 @@ def delete_visiter():
     visiter = get_valid_visiter(params)
     
     if visiter is None:
-        return abort(404)
+        return abort(400)
     
     db.session.delete(visiter)
     db.session.commit()
@@ -116,8 +127,10 @@ def delete_visiter():
 def get_image():
     snap = get_snap_from_visiter_json(get_json_params())
     
-    if snap is None:
-        return abort(404)
+    if snap is None or snap.src is None:
+        return abort(400)
+    
+    os.path.exists(app.config["SNAPS_DIRECTORY"] + snap.src)
     
     return send_from_directory(app.config["SNAPS_DIRECTORY"], snap.src)
 
@@ -125,8 +138,8 @@ def get_image():
 def get_thum_image():
     snap = get_snap_from_visiter_json(get_json_params())
     
-    if snap is None:
-        return abort(404)
+    if snap is None or snap.thum_src is None:
+        return abort(400)
     
     return send_from_directory(app.config["SNAPS_DIRECTORY"], snap.thum_src)
 
@@ -135,11 +148,12 @@ def get_snap_state():
     snap = get_snap_from_visiter_json(get_json_params())
     
     if snap is None:
-        return abort(404)
+        return abort(400)
     
     response_data = {
         "visiter_length": len(snap.visiters),
-        "snap_time": snap.date
+        "snap_time": snap.date,
+        "done": snap.src is not None
     }
     
     return Response(json.dumps(parse_serializable_obj(response_data)), mimetype="application/json")
