@@ -29,6 +29,55 @@ def parse_serializable_obj(data):
 def get_json_params():
     return json.loads(request.data)
 
+def validate_user(data):
+    if "user" not in data:
+        return False
+    
+    if not isinstance(data["user"], str) or len(data["user"]) > 255:
+        return False
+    
+    return True
+
+def validate_beacon(data):
+    if "uuid" not in data or "major" not in data or "minor" not in data:
+        return False
+    
+    if not isinstance(data["uuid"], str) or len(data["uuid"]) != 36:
+        return False
+    
+    if not isinstance(data["major"], int):
+        return False
+    
+    if not isinstance(data["minor"], int):
+        return False
+    
+    return True
+
+def validate_visiter(data):
+    if "id" not in data or "user" not in data or "place" not in data or "pass_phrase" not in data or "snap" not in data or "date" not in data:
+        return False
+    
+    if not isinstance(data["id"], int):
+        return False
+    
+    if not isinstance(data["user"], str) or len(data["user"]) > 255:
+        return False
+    
+    if not isinstance(data["place"], int):
+        return False
+    
+    if not isinstance(data["pass_phrase"], str) or len(data["pass_phrase"]) != 32:
+        return False
+    
+    if not isinstance(data["snap"], int):
+        return False
+    
+    if not isinstance(data["date"], str):
+        return False
+    
+    return True
+
+
 def get_valid_visiter(data):
     visiter_query = Visiter.query.filter_by(\
         id=data["id"],\
@@ -57,7 +106,7 @@ def get_snap_image(snap):
     snap.src = "mock.jpg"
     snap.thum_src = "mock_thum.jpg"
     db.session.commit()
-    
+
 
 @app.route("/")
 def show_all():
@@ -70,11 +119,14 @@ def show_all():
 def get_visiter():
     params = get_json_params()
     
+    if not validate_user(params) or not validate_beacon(params["beacon"]):
+        return abort(400)
+    
     place = Beacon.query.filter_by(\
         uuid=params["beacon"]["uuid"],\
         major=params["beacon"]["major"],\
         minor=params["beacon"]["minor"]\
-    ).one().place;
+    ).one().place
     
     active_snaps = Snap.query.filter("date > :now").params(now=datetime.datetime.now()).all();
     
@@ -114,10 +166,14 @@ def get_visiter():
 @app.route("/delete_visiter", methods=["POST"])
 def delete_visiter():
     params = get_json_params()
+    
+    if not validate_visiter(params):
+        return abort(400)
+    
     visiter = get_valid_visiter(params)
     
     if visiter is None:
-        return abort(400)
+        return Response(status=204)
     
     db.session.delete(visiter)
     db.session.commit()
@@ -125,10 +181,15 @@ def delete_visiter():
 
 @app.route("/get_image", methods=["POST"])
 def get_image():
-    snap = get_snap_from_visiter_json(get_json_params())
+    params = get_json_params()
+    
+    if not validate_visiter(params):
+        return abort(400)
+    
+    snap = get_snap_from_visiter_json(params)
     
     if snap is None or snap.src is None:
-        return abort(400)
+        return Response(status=204)
     
     os.path.exists(app.config["SNAPS_DIRECTORY"] + snap.src)
     
@@ -136,19 +197,29 @@ def get_image():
 
 @app.route("/get_thum", methods=["POST"])
 def get_thum_image():
-    snap = get_snap_from_visiter_json(get_json_params())
+    params = get_json_params()
+    
+    if not validate_visiter(params):
+        return abort(400)
+    
+    snap = get_snap_from_visiter_json(params)
     
     if snap is None or snap.thum_src is None:
-        return abort(400)
+        return Response(status=204)
     
     return send_from_directory(app.config["SNAPS_DIRECTORY"], snap.thum_src)
 
 @app.route("/get_snap_state", methods=["POST"])
 def get_snap_state():
-    snap = get_snap_from_visiter_json(get_json_params())
+    params = get_json_params()
+    
+    if not validate_visiter(params):
+        return abort(400)
+    
+    snap = get_snap_from_visiter_json(params)
     
     if snap is None:
-        return abort(400)
+        return Response(status=204)
     
     response_data = {
         "visiter_length": len(snap.visiters),
