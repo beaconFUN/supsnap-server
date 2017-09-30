@@ -1,2 +1,3 @@
 python ./docker_entry/wait_mysql.py
-python ./supsnap/__init__.py
+cd supsnap
+python __init__.py

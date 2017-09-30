@@ -1,12 +1,14 @@
 from flask import Flask, request, Response, render_template, send_from_directory, abort
 from app import app
 from db import db
-from models import Beacon, Place, Visiter, Snap
+from models import Beacon, Place, Visiter, Snap, Camera
 import datetime
 import json
 import copy
 from threading import Timer
 import os
+from werkzeug.utils import secure_filename
+import requests
 
 
 def parse_serializable_obj(data):
@@ -101,11 +103,14 @@ def get_snap_from_visiter_json(data):
     else:
         return Snap.query.filter_by(id=visiter.snap).one()
 
-def get_snap_image(snap):
+def set_snap(snap):
     snap = db.session.query(Snap).filter_by(id=snap).one()
-    snap.src = "mock.jpg"
-    snap.thum_src = "mock_thum.jpg"
-    db.session.commit()
+    
+    if len(snap.visiters) != 0:
+        camera = db.session.query(Place).filter_by(id=snap.visiters[0].place).one().camera[0]
+        print("requesting snap...")
+        payload = {"snap": snap.id, "interval": app.config["SNAP_TIME_LAG"]}
+        print(requests.get(camera.endpoint, params=payload).text)
 
 
 @app.route("/")
@@ -159,7 +164,7 @@ def get_visiter():
     
     db.session.commit()
     
-    Timer(app.config["SNAP_TIME_LAG"], get_snap_image, (serializable_new_visiter["snap"], )).start()
+    set_snap(serializable_new_visiter["snap"])
     
     return Response(json.dumps(serializable_new_visiter), mimetype="application/json")
 
@@ -228,6 +233,46 @@ def get_snap_state():
     }
     
     return Response(json.dumps(parse_serializable_obj(response_data)), mimetype="application/json")
+
+@app.route("/add_camera", methods=["POST"])
+def add_camera():
+    params = get_json_params()
+    
+    cameras = db.session.query(Camera).filter_by(place=params["place"]).all()
+    if len(cameras) != 0:
+        cameras[0].endpoint = params["endpoint"]
+        db.session.commit()
+        return "update ok"
+    
+    new_camera = Camera(params["place"], params["endpoint"])
+    db.session.add(new_camera)
+    db.session.commit()
+    
+    return "ok"
+
+@app.route("/post_image", methods=["POST"])
+def post_image():
+    if "image" not in request.files or "thum" not in request.files:
+        return "No file"
+    
+    image = request.files["image"]
+    thum = request.files["thum"]
+    
+    if image.filename == "" or thum.filename == "":
+        return "No filename"
+    
+    image_filename = secure_filename(image.filename)
+    thum_filename = secure_filename(thum.filename)
+    
+    image.save(os.path.join(app.config["SNAPS_DIRECTORY"], image_filename))
+    thum.save(os.path.join(app.config["SNAPS_DIRECTORY"], thum_filename))
+    
+    snap = db.session.query(Snap).filter_by(id=request.form["snap"]).one()
+    snap.src = image_filename
+    snap.thum_src = thum_filename
+    db.session.commit()
+    
+    return "ok"
 
 
 # debugging methods
