@@ -1,3 +1,10 @@
+Name
+===
+サプライズスナップサーバ
+
+Overview
+写真撮影、撮影場所の人数の特定などを行う
+
 # supsnap-server
 
 ## about
