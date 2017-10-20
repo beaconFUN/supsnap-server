@@ -120,6 +120,21 @@ def show_all():
     
     return render_template("index.html")
 
+@app.route("/get_place", methods=["POST"])
+def get_place():
+    params = get_json_params()
+
+    if not validate_beacon(params):
+        return abort(400)
+
+    place = Beacon.query.filter_by(\
+        uuid=params["uuid"],\
+        major=params["major"],\
+        minor=params["minor"]\
+    ).one().place
+
+    return Response(json.dumps(parse_serializable_obj(place), ensure_ascii=False), mimetype="application/json")
+
 @app.route("/get_visiter", methods=["POST"])
 def get_visiter():
     params = get_json_params()
