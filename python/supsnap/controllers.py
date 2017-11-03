@@ -1,4 +1,4 @@
-from flask import Flask, request, Response, render_template, send_from_directory, abort
+from flask import Flask, request, Response, render_template, send_from_directory, send_file, abort
 from app import app
 from db import db
 from models import Beacon, Place, Visiter, Snap, Camera
@@ -9,7 +9,9 @@ from threading import Timer
 import os
 from werkzeug.utils import secure_filename
 import requests
+from io import BytesIO
 
+live_views = {};
 
 def parse_serializable_obj(data):
     data = copy.deepcopy(data)
@@ -288,6 +290,29 @@ def post_image():
     db.session.commit()
     
     return "ok"
+
+@app.route("/post_live_view", methods=["POST"])
+def post_live_view():
+    if "place" not in request.form:
+        abort(400)
+
+    live_views[request.form["place"]] = BytesIO(request.files["live_view"].stream.read())
+    return "ok"
+
+@app.route("/get_live_view", methods=["POST"])
+def get_live_view():
+    params = get_json_params()
+
+    if not validate_visiter(params):
+        return abort(400)
+
+    if live_views[str(params["place"])].closed:
+        abort(404)
+
+    return send_file(live_views[str(params["place"])], mimetype="image/jpeg");
+
+
+
 
 
 # debugging methods
