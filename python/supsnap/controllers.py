@@ -201,10 +201,13 @@ def delete_visiter():
     db.session.commit()
     return Response(json.dumps({"state": "done"}), mimetype="application/json")
 
-@app.route("/get_image", methods=["POST"])
+@app.route("/get_image", methods=["GET", "POST"])
 def get_image():
-    params = get_json_params()
-    
+    if(request.method == "GET"):
+        params = json.loads(request.args.get("visiter"));
+    else:
+        params = get_json_params()
+
     if not validate_visiter(params):
         return abort(400)
     
