@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>supsnap-server</title>
+  </head>
+  <body>
+    <h1>supsnap-server</h1>
+    
+    <h2>api tester</h2>
+    <p>input json and click button</p>
+    <textarea class="json_input" rows="8" cols="80"></textarea><br />
+    
+    <button class="active_submit" type="submit">get_place</button>
+    <button class="active_submit" type="submit">get_visiter</button>
+    <button class="active_submit" type="submit">delete_visiter</button>
+    <button class="active_submit" type="submit">get_image</button>
+    <button class="active_submit" type="submit">get_thum</button>
+    <button class="active_submit" type="submit">get_snap_state</button>
+    <button class="active_submit" type="submit">add_camera</button>
+    <button class="active_submit" type="submit">get_live_view</button>
+    
+    <p>response</p>
+    <div class="response"></div>
+    
+    <h2>debugging api</h2>
+    <h3>models</h3>
+    <ul>
+      <li><a href="/models/Beacon">Beacon</a>
+      <li><a href="/models/Place">Place</a>
+      <li><a href="/models/Snap">Snap</a>
+      <li><a href="/models/Visiter">Visiter</a>
+      <li><a href="/models/Camera">Camera</a>
+    </ul>
+    
+    <script>
+      for(let elem of Array.from(document.querySelectorAll(".active_submit"))){
+        elem.addEventListener("click", (e) => {
+          fetch(e.target.innerText, {method: "POST", body: document.querySelector(".json_input").value}).then(res => {
+            if(res.headers.get("content-type").indexOf("image") !== -1){
+              return res.blob();
+            }else{
+              return res.text();
+            }
+          }).then(data => {
+            document.querySelector(".response").innerHTML = "";
+            if(data instanceof Blob){
+              let img = document.createElement("img");
+              img.src = URL.createObjectURL(data);
+              document.querySelector(".response").appendChild(img);
+            }else{
+              document.querySelector(".response").innerText = data;
+            }
+          });
+        })
+      }
+    </script>
+  </body>
+</html>
